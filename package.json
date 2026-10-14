@@ -1,0 +1,14 @@
+{
+  "name": "learn-time",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A toy clock that helps kids learn to tell the time, published as the <learn-time> embed.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "node build.mjs && python3 -m http.server --directory dist 8080"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
