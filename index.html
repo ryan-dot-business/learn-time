@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#29362a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Learn Time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@700;800&display=swap">
+<style>
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+  body { margin: 0; }
+  /* Layout (Figma Screen v0.2): portrait = title, readout, clock, 3x3 button grid.
+     Landscape = title, readout and grid on the left, clock on the right.
+     Single deliberate dark look, colours sampled from the Figma frames. */
+  :root {
+    --bg: #29362a;
+    --panel: #1b231d;
+    --cream: #fcf0c6;
+    --coral: #f47c78;
+    --yellow: #fff56c;
+    --dim: #5e6957;
+    --ink: #161b17;
+    --font: "Figtree", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: var(--font);
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .app {
+    box-sizing: border-box;
+    height: 100%;
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas: "title clock" "readout clock" "grid clock";
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+    column-gap: clamp(24px, 5vw, 72px);
+    row-gap: clamp(8px, 2vh, 18px);
+    padding-block: 12px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    --unit: clamp(24px, min(5.2vw, 7.4vh), 56px);
+  }
+  .title { grid-area: title; }
+  .readout { grid-area: readout; }
+  .grid { grid-area: grid; }
+  .clock-wrap { grid-area: clock; align-self: center; width: min(46vw, 86vh); max-width: 100%; }
+
+  @media (orientation: portrait) {
+    .app {
+      grid-template-columns: auto;
+      grid-template-areas: "title" "readout" "clock" "grid";
+      --unit: clamp(22px, min(9.5vw, 4.6vh), 52px);
+    }
+    .clock-wrap { width: min(80vw, calc(100vh - var(--unit) * 9.2 - 70px)); min-width: 160px; }
+  }
+
+  /* Title: Now / the quiz target / an example's name */
+  .title {
+    font-size: calc(var(--unit) * 0.82);
+    font-weight: 800;
+    line-height: 1.1;
+    min-height: 1.1em;
+    letter-spacing: -0.01em;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    transition: color .25s ease;
+  }
+  .title .sm { font-size: .5em; margin-left: .15em; }
+  .title .gap { display: inline-block; width: .18em; }
+  .title.win { color: var(--yellow); }
+
+  /* Digital readout: always follows the hands */
+  .readout {
+    display: flex;
+    align-items: flex-end;
+    gap: calc(var(--unit) * 0.1);
+    background: var(--panel);
+    border-radius: calc(var(--unit) * 0.22);
+    padding: calc(var(--unit) * 0.16);
+    font-size: calc(var(--unit) * 0.82);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: box-shadow .25s ease;
+  }
+  .tile { color: var(--ink); border-radius: calc(var(--unit) * 0.12); padding: calc(var(--unit) * 0.08) calc(var(--unit) * 0.12); letter-spacing: -0.02em; }
+  .tile.hour { background: var(--coral); }
+  .tile.min { background: var(--yellow); }
+  .colon { color: var(--cream); padding-bottom: calc(var(--unit) * 0.1); }
+  .ampm { font-size: .5em; color: var(--cream); padding-bottom: calc(var(--unit) * 0.1); padding-left: .05em; }
+  .readout.win { box-shadow: 0 0 0 calc(var(--unit) * 0.07) var(--yellow); }
+
+  /* Split-flap characters in the quiz title */
+  .ch { display: inline-block; transform-origin: 50% 50%; }
+
+  /* Button grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, calc(var(--unit) * 2.15));
+    grid-auto-rows: calc(var(--unit) * 1.3);
+    gap: calc(var(--unit) * 0.16);
+    margin-top: calc(var(--unit) * 0.2);
+  }
+  @media (orientation: portrait) { .grid { margin-top: calc(var(--unit) * 0.3); } }
+  .btn {
+    font: 800 calc(var(--unit) * 0.5) / 1 var(--font);
+    border: 0;
+    border-radius: calc(var(--unit) * 0.1);
+    background: var(--dim);
+    color: var(--ink);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    opacity: 1;
+    transition: background .2s ease, transform .1s ease;
+  }
+  .btn > * { opacity: .5; transition: opacity .2s ease; }
+  .btn img { height: 74%; width: auto; max-width: 80%; pointer-events: none; -webkit-user-drag: none; }
+  .btn[aria-pressed="true"] { background: var(--cream); }
+  .btn[aria-pressed="true"] > * { opacity: 1; }
+  .btn:active { transform: scale(.95); }
+  .btn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+
+  /* Clock */
+  svg.clock { display: block; width: 100%; height: auto; touch-action: none; overflow: visible; font-family: var(--font); }
+  .rim { fill: var(--bg); stroke: var(--cream); stroke-width: 10; transition: stroke .25s ease; }
+  .rim.win { stroke: var(--yellow); }
+  .num { fill: var(--cream); font-size: 15px; font-weight: 800; text-anchor: middle; dominant-baseline: central; }
+  .num.hl { fill: var(--coral); font-size: 25px; }
+  .minlabel { fill: var(--yellow); font-size: 17px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; }
+  .hand { stroke-linecap: round; }
+  .hand.hour { stroke: var(--coral); stroke-width: 10; }
+  .hand.min { stroke: var(--yellow); stroke-width: 6.5; }
+  .ghost { opacity: 0; transition: opacity .4s ease; pointer-events: none; }
+  .ghost.show { opacity: .32; }
+  .hit { stroke: transparent; stroke-width: 26; stroke-linecap: round; cursor: grab; }
+  .handle { cursor: grab; outline: none; }
+  .handle .knob.hour { fill: var(--coral); }
+  .handle .knob.min { fill: var(--yellow); }
+  .handle .grip { stroke: var(--ink); stroke-width: 1.2; stroke-linecap: round; opacity: .55; }
+  .handle .ring { fill: none; stroke: var(--cream); stroke-width: 2; opacity: 0; }
+  .handle:focus-visible .ring { opacity: 1; }
+  .handle .pad { fill: transparent; }
+  .dragging, .dragging * { cursor: grabbing !important; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+
+</head>
+<body>
+<main class="app">
+  <h1 class="title" id="title" aria-live="polite">Now</h1>
+
+  <div class="readout" id="readout" role="img" aria-label="">
+    <span class="tile hour" id="rHour">1</span>
+    <span class="colon">:</span>
+    <span class="tile min" id="rMin">02</span>
+    <span class="ampm" id="rAmPm">PM</span>
+  </div>
+
+  <div class="clock-wrap">
+    <svg class="clock" id="clock" viewBox="-24 -24 269 269" aria-label="Clock face. Drag the red handle to set the hour and the yellow handle to set the minutes.">
+      <circle class="rim" id="rim" cx="110.5" cy="110.5" r="105.5"/>
+      <g id="nums"></g>
+      <text class="minlabel" id="minLabel"></text>
+
+      <g id="ghosts" class="ghost">
+        <line class="hand hour" id="gHour" x1="110.5" y1="110.5" x2="110.5" y2="64"/>
+        <line class="hand min" id="gMin" x1="110.5" y1="110.5" x2="110.5" y2="38"/>
+      </g>
+
+      <line class="hand hour" id="hHour" x1="110.5" y1="110.5" x2="110.5" y2="64"/>
+      <line class="hand min" id="hMin" x1="110.5" y1="110.5" x2="110.5" y2="38"/>
+      <circle cx="110.5" cy="110.5" r="3.4" fill="var(--ink)"/>
+
+      <g id="burst"></g>
+
+      <line class="hit" id="hitHour" data-hand="hour" x1="110.5" y1="110.5" x2="110.5" y2="64"/>
+      <line class="hit" id="hitMin" data-hand="minute" x1="110.5" y1="110.5" x2="110.5" y2="38"/>
+
+      <g class="handle" id="handleHour" data-hand="hour" tabindex="0" role="slider" aria-label="Hour hand" aria-valuemin="1" aria-valuemax="12">
+        <circle class="pad" r="24"/>
+        <circle class="ring" r="13"/>
+        <circle class="knob hour" r="9"/>
+        <path class="grip" d="M-3.6 -2.4H3.6M-3.6 0H3.6M-3.6 2.4H3.6"/>
+      </g>
+      <g class="handle" id="handleMin" data-hand="minute" tabindex="0" role="slider" aria-label="Minute hand" aria-valuemin="0" aria-valuemax="59">
+        <circle class="pad" r="24"/>
+        <circle class="ring" r="13"/>
+        <circle class="knob min" r="9"/>
+        <path class="grip" d="M-3.6 -2.4H3.6M-3.6 0H3.6M-3.6 2.4H3.6"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="grid" id="grid">
+    <button class="btn" id="btnNow" type="button" aria-pressed="true"><span>Now</span></button>
+    <button class="btn" id="btnQuiz" type="button" aria-pressed="false" aria-label="Quiz me"><span>?</span></button>
+    <button class="btn ex" type="button" data-ex="sunrise" aria-pressed="false" aria-label="Sunrise"><img alt="" src="images/sunrise.png"></button>
+    <button class="btn ex" type="button" data-ex="midday" aria-pressed="false" aria-label="Midday"><img alt="" src="images/midday.png"></button>
+    <button class="btn ex" type="button" data-ex="sunset" aria-pressed="false" aria-label="Sunset"><img alt="" src="images/sunset.png"></button>
+    <button class="btn ex" type="button" data-ex="midnight" aria-pressed="false" aria-label="Midnight"><img alt="" src="images/midnight.png"></button>
+    <button class="btn ex" type="button" data-ex="breakfast" aria-pressed="false" aria-label="Breakfast"><img alt="" src="images/breakfast.png"></button>
+    <button class="btn ex" type="button" data-ex="lunch" aria-pressed="false" aria-label="Lunch"><img alt="" src="images/lunch.png"></button>
+    <button class="btn ex" type="button" data-ex="dinner" aria-pressed="false" aria-label="Dinner"><img alt="" src="images/dinner.png"></button>
+  </div>
+  <p class="sr-only" id="live" aria-live="polite"></p>
+</main>
+
+<script>
+(() => {
+  const C = 110.5, R_NUM = 84, R_HANDLE = 125, L_HOUR = 46, L_MIN = 72;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = id => document.getElementById(id);
+  const svg = $('clock');
+  const mod = (n, m) => ((n % m) + m) % m;
+  const pad2 = n => String(n).padStart(2, '0');
+
+  // ---- Sunrise and sunset, estimated from the device's time zone ----
+  // The page can't ask for location, so each time zone maps to its main city.
+  const ZONES = {
+    'America/Toronto': [43.65, -79.38], 'America/New_York': [40.71, -74.01], 'America/Chicago': [41.88, -87.63],
+    'America/Denver': [39.74, -104.99], 'America/Los_Angeles': [34.05, -118.24], 'America/Vancouver': [49.28, -123.12],
+    'America/Edmonton': [53.55, -113.49], 'America/Winnipeg': [49.9, -97.14], 'America/Regina': [50.45, -104.61],
+    'America/Halifax': [44.65, -63.57], 'America/St_Johns': [47.56, -52.71], 'America/Montreal': [45.5, -73.57],
+    'America/Phoenix': [33.45, -112.07], 'America/Anchorage': [61.22, -149.9], 'America/Detroit': [42.33, -83.05],
+    'America/Mexico_City': [19.43, -99.13], 'America/Bogota': [4.71, -74.07], 'America/Lima': [-12.05, -77.04],
+    'America/Sao_Paulo': [-23.55, -46.63], 'America/Argentina/Buenos_Aires': [-34.6, -58.38], 'America/Santiago': [-33.45, -70.67],
+    'Pacific/Honolulu': [21.31, -157.86], 'Europe/London': [51.51, -0.13], 'Europe/Dublin': [53.35, -6.26],
+    'Europe/Lisbon': [38.72, -9.14], 'Europe/Paris': [48.86, 2.35], 'Europe/Madrid': [40.42, -3.7],
+    'Europe/Berlin': [52.52, 13.4], 'Europe/Amsterdam': [52.37, 4.9], 'Europe/Brussels': [50.85, 4.35],
+    'Europe/Zurich': [47.38, 8.54], 'Europe/Rome': [41.9, 12.5], 'Europe/Vienna': [48.21, 16.37],
+    'Europe/Stockholm': [59.33, 18.07], 'Europe/Oslo': [59.91, 10.75], 'Europe/Copenhagen': [55.68, 12.57],
+    'Europe/Helsinki': [60.17, 24.94], 'Europe/Warsaw': [52.23, 21.01], 'Europe/Athens': [37.98, 23.73],
+    'Europe/Istanbul': [41.01, 28.98], 'Europe/Kiev': [50.45, 30.52], 'Europe/Kyiv': [50.45, 30.52], 'Europe/Moscow': [55.76, 37.62],
+    'Africa/Cairo': [30.04, 31.24], 'Africa/Lagos': [6.52, 3.38], 'Africa/Nairobi': [-1.29, 36.82],
+    'Africa/Johannesburg': [-26.2, 28.05], 'Asia/Dubai': [25.2, 55.27], 'Asia/Karachi': [24.86, 67.0],
+    'Asia/Kolkata': [19.08, 72.88], 'Asia/Calcutta': [19.08, 72.88], 'Asia/Dhaka': [23.81, 90.41], 'Asia/Bangkok': [13.76, 100.5],
+    'Asia/Jakarta': [-6.21, 106.85], 'Asia/Singapore': [1.35, 103.82], 'Asia/Kuala_Lumpur': [3.14, 101.69],
+    'Asia/Manila': [14.6, 120.98], 'Asia/Shanghai': [31.23, 121.47], 'Asia/Hong_Kong': [22.32, 114.17],
+    'Asia/Taipei': [25.03, 121.57], 'Asia/Seoul': [37.57, 126.98], 'Asia/Tokyo': [35.68, 139.69],
+    'Australia/Perth': [-31.95, 115.86], 'Australia/Adelaide': [-34.93, 138.6], 'Australia/Brisbane': [-27.47, 153.03],
+    'Australia/Sydney': [-33.87, 151.21], 'Australia/Melbourne': [-37.81, 144.96], 'Pacific/Auckland': [-36.85, 174.76],
+  };
+  function place() {
+    let tz = '';
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+    if (ZONES[tz]) return ZONES[tz];
+    // Unknown zone: longitude from the UTC offset, a mid-northern latitude.
+    return [40, -new Date().getTimezoneOffset() / 4];
+  }
+  // NOAA solar position approximation; returns local minutes since midnight.
+  function sunTimes(date = new Date()) {
+    const [lat, lon] = place();
+    const rad = Math.PI / 180;
+    const start = new Date(date.getFullYear(), 0, 0);
+    const n = Math.floor((date - start) / 864e5);
+    const g = 2 * Math.PI / 365 * (n - 1);
+    const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+    const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g)
+      + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+    let c = Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl);
+    c = Math.max(-1, Math.min(1, c));                        // polar day or night: clamp
+    const ha = Math.acos(c) / rad;
+    const off = -date.getTimezoneOffset();
+    const rise = Math.round(720 - 4 * (lon + ha) - eq + off);
+    const set = Math.round(720 - 4 * (lon - ha) - eq + off);
+    return { rise: mod(rise, 1440), set: mod(set, 1440) };
+  }
+
+  const EXAMPLES = {
+    sunrise: { name: 'Sunrise', time: () => sunTimes().rise },
+    midday: { name: 'Midday', time: () => 12 * 60 },
+    sunset: { name: 'Sunset', time: () => sunTimes().set },
+    midnight: { name: 'Midnight', time: () => 0 },
+    breakfast: { name: 'Breakfast', time: () => 8 * 60 + 15 },
+    lunch: { name: 'Lunch', time: () => 12 * 60 + 30 },
+    dinner: { name: 'Dinner', time: () => 19 * 60 },
+  };
+
+  // ---- Sound: synthesized with Web Audio, no files ----
+  const sfx = (() => {
+    let ctx = null, master = null, noise = null, lastTick = 0;
+    function unlock() {
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        ctx = new AC();
+        const comp = ctx.createDynamicsCompressor();
+        master = ctx.createGain();
+        master.gain.value = 0.55;
+        master.connect(comp).connect(ctx.destination);
+        noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.06), ctx.sampleRate);
+        const d = noise.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+    }
+    const ready = () => ctx && ctx.state === 'running';
+    function env(gain, at, peak, dur) {
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(peak, at + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    }
+    function click(freq, peak, dur, at = ctx.currentTime) {
+      const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noise;
+      bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 6;
+      env(g, at, peak, dur);
+      src.connect(bp).connect(g).connect(master);
+      src.start(at); src.stop(at + dur + 0.02);
+    }
+    function bar(freq, peak, dur, at = ctx.currentTime) {
+      [[1, peak, dur], [3.98, peak * 0.25, dur * 0.3]].forEach(([mult, p, d]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = freq * mult;
+        env(g, at, p, d);
+        o.connect(g).connect(master);
+        o.start(at); o.stop(at + d + 0.02);
+      });
+    }
+    return {
+      unlock,
+      tick(onNumeral) {
+        if (!ready()) return;
+        const now = ctx.currentTime;
+        if (now - lastTick < 0.03) return;
+        lastTick = now;
+        click(onNumeral ? 3400 : 2600, onNumeral ? 0.55 : 0.3, 0.035);
+      },
+      flap() { if (!ready()) return; click(1500 + Math.random() * 300, 0.22, 0.025); },
+      tock() { if (!ready()) return; bar(392, 0.4, 0.22); click(1100, 0.25, 0.04); },
+      flip(toPM) {
+        if (!ready()) return;
+        const t = ctx.currentTime, [a, b] = toPM ? [784, 523.25] : [523.25, 784];
+        bar(a, 0.28, 0.5, t); bar(b, 0.28, 0.7, t + 0.12);
+      },
+      align(high) { if (!ready()) return; bar(high ? 1568 : 1175, 0.12, 0.35); },
+      win() {
+        if (!ready()) return;
+        const t = ctx.currentTime;
+        [523.25, 659.25, 784, 1046.5].forEach((f, i) => bar(f, 0.32, i === 3 ? 0.9 : 0.4, t + i * 0.085));
+      },
+      pop(up) {
+        if (!ready()) return;
+        const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(up ? 520 : 820, t);
+        o.frequency.exponentialRampToValueAtTime(up ? 880 : 480, t + 0.09);
+        env(g, t, 0.25, 0.12);
+        o.connect(g).connect(master);
+        o.start(t); o.stop(t + 0.15);
+      },
+    };
+  })();
+
+  // ---- State: everything on screen comes from these values ----
+  // mode: 'now' | 'play' | 'quiz' | 'example'
+  const state = { t: realNow(), mode: 'now', target: null, example: null, hint: false,
+    drags: new Map(), anim: null, celebrating: false, flipping: false };
+
+  function realNow() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+
+  // ---- Derived values ----
+  const hourIdx = t => Math.floor(mod(t, 720) / 60);
+  const hourLabel = t => hourIdx(t) || 12;
+  const ampm = t => (mod(t, 1440) < 720 ? 'AM' : 'PM');
+  function labelSlot(t) {
+    const m = mod(t, 60), h = hourIdx(t);
+    let s = Math.round(m / 5) % 12;
+    if (s === h) {
+      let diff = m - 5 * h;
+      if (diff > 30) diff -= 60;
+      if (diff < -30) diff += 60;
+      s = diff >= 0 ? (h + 1) % 12 : (h + 11) % 12;
+    }
+    return s;
+  }
+  function polar(deg, r) {
+    const a = (deg - 90) * Math.PI / 180;
+    return [C + r * Math.cos(a), C + r * Math.sin(a)];
+  }
+
+  // ---- Build numerals ----
+  const NS = 'http://www.w3.org/2000/svg';
+  const nums = [];
+  for (let i = 0; i < 12; i++) {
+    const el = document.createElementNS(NS, 'text');
+    const [x, y] = polar(i * 30, R_NUM);
+    el.setAttribute('x', x.toFixed(2));
+    el.setAttribute('y', y.toFixed(2));
+    el.setAttribute('class', 'num');
+    el.textContent = i === 0 ? '12' : String(i);
+    $('nums').appendChild(el);
+    nums.push(el);
+  }
+
+  // ---- Title: Now / quiz target (split-flap) / example name / blank in Play ----
+  const titleEl = $('title');
+  let titleKey = '';
+  function buildTargetTitle() {
+    titleEl.innerHTML = '<span class="ch" id="tH"></span><span class="gap"></span>:<span class="gap"></span>'
+      + '<span class="ch" id="tM1"></span><span class="ch" id="tM2"></span><span class="sm"><span class="ch" id="tAP"></span></span>';
+  }
+  function setTargetChars(t) {
+    const mm = pad2(mod(t, 60));
+    $('tH').textContent = hourLabel(t);
+    $('tM1').textContent = mm[0];
+    $('tM2').textContent = mm[1];
+    $('tAP').textContent = ampm(t);
+  }
+  function renderTitle() {
+    let key;
+    if (state.mode === 'quiz' && state.target != null) key = 'quiz';
+    else if (state.mode === 'example') key = 'ex:' + state.example;
+    else if (state.mode === 'now') key = 'now';
+    else key = 'play';
+    if (key === 'quiz') {
+      if (titleKey !== 'quiz') buildTargetTitle();
+      if (!state.flipping) setTargetChars(state.target);
+      titleEl.setAttribute('aria-label', `Set the clock to ${hourLabel(state.target)}:${pad2(mod(state.target, 60))} ${ampm(state.target)}`);
+    } else if (key !== titleKey) {
+      titleEl.removeAttribute('aria-label');
+      titleEl.textContent = key === 'now' ? 'Now' : key === 'play' ? '' : EXAMPLES[state.example].name;
+    }
+    titleKey = key;
+  }
+
+  // ---- Render ----
+  function setHand(line, deg, len) {
+    const [x, y] = polar(deg, len);
+    line.setAttribute('x2', x.toFixed(2));
+    line.setAttribute('y2', y.toFixed(2));
+  }
+  function setHandle(g, deg) {
+    const [x, y] = polar(deg, R_HANDLE);
+    g.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+  }
+
+  // `ang` lets an animation draw each hand at its own angle instead of deriving both from one time.
+  function render(tDisp = state.t, ang = null) {
+    const ti = mod(Math.round(tDisp), 1440);
+    const minDeg = ang ? ang.m : mod(tDisp, 60) * 6;
+    const hourDeg = ang ? ang.h : mod(tDisp, 720) * 0.5;
+
+    setHand($('hHour'), hourDeg, L_HOUR); setHand($('hitHour'), hourDeg, L_HOUR);
+    setHand($('hMin'), minDeg, L_MIN); setHand($('hitMin'), minDeg, L_MIN);
+    setHandle($('handleHour'), hourDeg);
+    setHandle($('handleMin'), minDeg);
+
+    const hi = hourIdx(ti), slot = labelSlot(ti);
+    nums.forEach((el, i) => {
+      el.classList.toggle('hl', i === hi);
+      el.style.visibility = i === slot ? 'hidden' : 'visible';
+    });
+    const [lx, ly] = polar(slot * 30, R_NUM);
+    const ml = $('minLabel');
+    ml.setAttribute('x', lx.toFixed(2));
+    ml.setAttribute('y', ly.toFixed(2));
+    ml.textContent = pad2(mod(ti, 60));
+
+    const quiz = state.mode === 'quiz' && state.target != null;
+    $('ghosts').classList.toggle('show', quiz && state.hint && !state.flipping);
+    if (quiz) {
+      setHand($('gHour'), mod(state.target, 720) * 0.5, L_HOUR);
+      setHand($('gMin'), mod(state.target, 60) * 6, L_MIN);
+    }
+
+    // The readout always follows the hands, in every mode.
+    $('rHour').textContent = hourLabel(ti);
+    $('rMin').textContent = pad2(mod(ti, 60));
+    $('rAmPm').textContent = ampm(ti);
+    $('readout').setAttribute('aria-label', `The clock says ${hourLabel(ti)}:${pad2(mod(ti, 60))} ${ampm(ti)}`);
+
+    $('handleHour').setAttribute('aria-valuenow', hourLabel(ti));
+    $('handleMin').setAttribute('aria-valuenow', mod(ti, 60));
+
+    renderTitle();
+    $('btnNow').setAttribute('aria-pressed', String(state.mode === 'now'));
+    $('btnQuiz').setAttribute('aria-pressed', String(state.mode === 'quiz'));
+    document.querySelectorAll('.btn.ex').forEach(b =>
+      b.setAttribute('aria-pressed', String(state.mode === 'example' && state.example === b.dataset.ex)));
+  }
+
+  // ---- Time changes ----
+  function stopAnim() { if (state.anim) { cancelAnimationFrame(state.anim.raf); state.anim = null; } }
+
+  // Dragging leaves Now and the examples for Play; the quiz stays a quiz.
+  function onKidMove() {
+    if (state.mode === 'now' || state.mode === 'example') { state.mode = 'play'; state.example = null; }
+  }
+  // Minute hand. Outside the quiz it is fully geared: passing 12 moves the hour and can flip AM/PM.
+  // In the quiz it only moves the hour hand within the hour the kid set, so the hour never advances.
+  function setMinute(m, delta) {
+    if (state.mode === 'quiz') state.t = Math.floor(state.t / 60) * 60 + mod(m, 60);
+    else state.t = mod(state.t + delta, 1440);
+  }
+  // Hour hand: snaps to an hour, keeps the minutes and the AM/PM half.
+  function setHour(h) {
+    const half = state.t >= 720 ? 720 : 0;
+    state.t = half + mod(h, 12) * 60 + mod(state.t, 60);
+  }
+
+  function playChange(prev, next) {
+    if (prev === next) return;
+    if (ampm(prev) !== ampm(next)) sfx.flip(ampm(next) === 'PM');
+    else if (hourIdx(prev) !== hourIdx(next)) sfx.tock();
+    else sfx.tick(mod(next, 60) % 5 === 0);
+    if (state.mode === 'quiz' && state.target != null && state.hint) {
+      const tm = mod(state.target, 60), th = hourIdx(state.target);
+      if (mod(next, 60) === tm && mod(prev, 60) !== tm) sfx.align(true);
+      else if (hourIdx(next) === th && hourIdx(prev) !== th) sfx.align(false);
+    }
+  }
+
+  // Jumps to a time (Now, examples): each hand turns clockwise on its own, straight to its
+  // new position, instead of winding the clock through every minute in between.
+  function animateTo(to) {
+    stopAnim();
+    const h0 = mod(state.t, 720) * 0.5, m0 = mod(state.t, 60) * 6;
+    const h1 = mod(to, 720) * 0.5, m1 = mod(to, 60) * 6;
+    const dh = mod(h1 - h0, 360), dm = mod(m1 - m0, 360);
+    if ((dh === 0 && dm === 0) || reduceMotion) { state.t = to; render(); sfx.tock(); return; }
+    const dur = Math.min(1000, 420 + Math.max(dh, dm) * 1.6);
+    const start = performance.now();
+    const ease = x => 1 - Math.pow(1 - x, 3);
+    const half = to >= 720 ? 720 : 0;
+    const tick = now => {
+      const p = Math.min(1, (now - start) / dur), e = ease(p);
+      const ang = { h: mod(h0 + dh * e, 360), m: mod(m0 + dm * e, 360) };
+      // Readout and face labels read the hands as they move.
+      const mins = Math.round(ang.m / 6) % 60, hrs = Math.floor(ang.h / 30) % 12;
+      render(half + hrs * 60 + mins, ang);
+      if (p < 1) state.anim.raf = requestAnimationFrame(tick);
+      else { state.anim = null; state.t = to; render(); sfx.tock(); }
+    };
+    state.anim = { raf: requestAnimationFrame(tick) };
+  }
+
+  // ---- Quiz ----
+  function newTarget() {
+    let tg;
+    do { tg = Math.floor(Math.random() * 1440); } while (mod(tg, 720) === mod(state.t, 720));
+    state.target = tg;
+    state.hint = false;
+  }
+  const isMatch = () => state.mode === 'quiz' && state.target != null && !state.flipping
+    && mod(state.t, 720) === mod(state.target, 720);
+
+  function checkMatch() {
+    if (!isMatch() || state.celebrating) return;
+    state.celebrating = true;
+    $('live').textContent = 'You got it!';
+    $('rim').classList.add('win');
+    $('readout').classList.add('win');
+    titleEl.classList.add('win');
+    sfx.win();
+    if (!reduceMotion) burst();
+    setTimeout(() => {
+      $('rim').classList.remove('win');
+      $('readout').classList.remove('win');
+      titleEl.classList.remove('win');
+      state.celebrating = false;
+      if (state.mode === 'quiz') { newTarget(); flipTo(state.target); }
+    }, 1500);
+  }
+
+  // Split-flap reveal of the quiz target in the title.
+  let flipTimers = [];
+  function cancelFlip() {
+    flipTimers.forEach(clearTimeout);
+    flipTimers = [];
+    state.flipping = false;
+  }
+  function flipTo(target) {
+    cancelFlip();
+    if (titleKey !== 'quiz') { buildTargetTitle(); titleKey = 'quiz'; setTargetChars(state.t); }
+    if (reduceMotion) { render(); return; }
+    const HOURS = ['12', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'];
+    const DIGITS = '0123456789'.split('');
+    const mm = pad2(mod(target, 60));
+    const chars = [
+      { el: $('tH'), seq: HOURS, to: HOURS.indexOf(String(hourLabel(target))), delay: 0 },
+      { el: $('tM1'), seq: DIGITS.slice(0, 6), to: Number(mm[0]), delay: 90 },
+      { el: $('tM2'), seq: DIGITS, to: Number(mm[1]), delay: 180 },
+      { el: $('tAP'), seq: ['AM', 'PM'], to: ampm(target) === 'AM' ? 0 : 1, delay: 260 },
+    ];
+    const STEP = 62;
+    state.flipping = true;
+    let pending = chars.length;
+    chars.forEach(c => {
+      const len = c.seq.length;
+      let from = c.seq.indexOf(c.el.textContent);
+      if (from < 0) from = 0;
+      let steps = mod(c.to - from, len);
+      const minSteps = len === 2 ? 2 : 4;
+      while (steps < minSteps) steps += len;
+      for (let s = 1; s <= steps; s++) {
+        flipTimers.push(setTimeout(() => {
+          c.el.textContent = c.seq[mod(from + s, len)];
+          c.el.animate(
+            [{ transform: 'rotateX(-80deg)', opacity: .5 }, { transform: 'rotateX(0)', opacity: 1 }],
+            { duration: STEP - 6, easing: 'cubic-bezier(.3,.7,.4,1)' });
+          sfx.flap();
+          if (s === steps && --pending === 0) {
+            flipTimers.push(setTimeout(() => {
+              flipTimers = [];
+              state.flipping = false;
+              sfx.tock();
+              render();
+              checkMatch();
+            }, 120));
+          }
+        }, c.delay + s * STEP));
+      }
+    });
+    render();
+  }
+
+  function burst() {
+    const g = $('burst');
+    const parts = [];
+    for (let i = 0; i < 16; i++) {
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('r', i % 2 ? 4 : 3);
+      c.setAttribute('fill', i % 2 ? 'var(--coral)' : 'var(--yellow)');
+      g.appendChild(c);
+      parts.push({ c, a: (i / 16) * 360 + Math.random() * 12, d: 70 + Math.random() * 40 });
+    }
+    const start = performance.now(), dur = 800;
+    const tick = now => {
+      const p = Math.min(1, (now - start) / dur), e = 1 - Math.pow(1 - p, 3);
+      parts.forEach(({ c, a, d }) => {
+        const [x, y] = polar(a, 12 + d * e);
+        c.setAttribute('cx', x); c.setAttribute('cy', y);
+        c.setAttribute('opacity', String(1 - p));
+      });
+      if (p < 1) requestAnimationFrame(tick); else g.replaceChildren();
+    };
+    requestAnimationFrame(tick);
+  }
+
+  // ---- Pointer input ----
+  function pointerDeg(e) {
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return mod(Math.atan2(p.x - C, -(p.y - C)) * 180 / Math.PI, 360);
+  }
+  const angDist = (a, b) => { const d = mod(a - b, 360); return Math.min(d, 360 - d); };
+
+  svg.addEventListener('pointerdown', e => {
+    if (e.button !== undefined && e.button > 0) return;
+    let hand = e.target.closest('[data-hand]')?.dataset.hand;
+    if (!hand) {
+      const deg = pointerDeg(e);
+      const dm = angDist(deg, mod(state.t, 60) * 6), dh = angDist(deg, mod(state.t, 720) * 0.5);
+      const best = dm <= dh ? ['minute', dm] : ['hour', dh];
+      if (best[1] > 22) return;
+      hand = best[0];
+    }
+    e.preventDefault();
+    sfx.unlock();
+    stopAnim();
+    svg.setPointerCapture(e.pointerId);
+    svg.classList.add('dragging');
+    state.drags.set(e.pointerId, { hand, lastMinute: mod(state.t, 60) });
+  });
+
+  svg.addEventListener('pointermove', e => {
+    const d = state.drags.get(e.pointerId);
+    if (!d) return;
+    const deg = pointerDeg(e);
+    const before = state.t;
+    if (d.hand === 'minute') {
+      const m = Math.round(deg / 6) % 60;
+      let delta = m - d.lastMinute;
+      if (delta > 30) delta -= 60;
+      if (delta < -30) delta += 60;
+      if (delta === 0) return;
+      setMinute(m, delta);
+      d.lastMinute = m;
+    } else {
+      setHour(Math.round(deg / 30));
+    }
+    if (state.t !== before) { onKidMove(); render(); playChange(before, state.t); }
+  });
+
+  function endDrag(e) {
+    if (!state.drags.delete(e.pointerId)) return;
+    if (state.drags.size === 0) svg.classList.remove('dragging');
+    checkMatch();
+  }
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+
+  // ---- Keyboard ----
+  function onKey(e, hand) {
+    const keys = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 5, PageDown: -5 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    sfx.unlock();
+    stopAnim();
+    const before = state.t;
+    if (hand === 'minute') setMinute(mod(state.t, 60) + keys[e.key], keys[e.key]);
+    else setHour(hourIdx(state.t) + Math.sign(keys[e.key]));
+    onKidMove();
+    render();
+    playChange(before, state.t);
+    checkMatch();
+  }
+  $('handleMin').addEventListener('keydown', e => onKey(e, 'minute'));
+  $('handleHour').addEventListener('keydown', e => onKey(e, 'hour'));
+
+  // ---- Buttons ----
+  $('btnNow').addEventListener('click', () => {
+    sfx.unlock(); sfx.pop(false);
+    cancelFlip();
+    state.mode = 'now';
+    state.target = null; state.example = null;
+    render();
+    animateTo(realNow());
+  });
+  $('btnQuiz').addEventListener('click', () => {
+    sfx.unlock();
+    stopAnim();
+    // First tap: a new time flips in. Second tap: the ghost hands fade in as a hint.
+    // Tapping again once the hint is showing serves a new time.
+    if (state.mode === 'quiz' && !state.hint && !state.flipping) {
+      state.hint = true;
+      sfx.align(true);
+      render();
+      return;
+    }
+    sfx.pop(true);
+    state.mode = 'quiz'; state.example = null;
+    newTarget();
+    flipTo(state.target);
+  });
+  document.querySelectorAll('.btn.ex').forEach(b => b.addEventListener('click', () => {
+    sfx.unlock(); sfx.pop(true);
+    cancelFlip();
+    state.mode = 'example';
+    state.example = b.dataset.ex;
+    state.target = null;
+    render();
+    animateTo(EXAMPLES[state.example].time());
+  }));
+
+  // ---- Real time in Now mode ----
+  function syncNow() {
+    if (state.mode !== 'now' || state.anim || state.drags.size) return;
+    const rt = realNow();
+    if (rt !== state.t) { state.t = rt; render(); }
+  }
+  setInterval(syncNow, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
