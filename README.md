@@ -48,5 +48,7 @@ Every push to `main` deploys the site to GitHub Pages through `.github/workflows
 
 - `index.html`: the whole toy (markup, styles and script)
 - `images/`: the time example pictures
+- `og-image.png`: the 1200×630 link preview image
+- `favicon.svg`, `apple-touch-icon.png`: icons. While the page is open, the browser-tab icon is redrawn to show the current hour.
 
 Designs are in the Figma file "Learn Time".

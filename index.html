@@ -7,6 +7,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Learn Time</title>
+<meta name="description" content="A toy clock that helps kids learn to tell the time. Drag the hands, take a quiz, and see when sunrise, lunch and dinner happen.">
+<link rel="icon" id="favicon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Learn Time">
+<meta property="og:description" content="A toy clock that helps kids learn to tell the time.">
+<meta property="og:url" content="https://ryan-dot-business.github.io/learn-time/">
+<meta property="og:image" content="https://ryan-dot-business.github.io/learn-time/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Learn Time: a clock face at 1:41 beside the words Learn Time.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ryan-dot-business.github.io/learn-time/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@700;800&display=swap">
@@ -771,6 +784,32 @@
     if (rt !== state.t) { state.t = rt; render(); }
   }
   setInterval(syncNow, 1000);
+
+  // ---- Favicon: the real current hour on a dark tile ----
+  const favicon = $('favicon');
+  let favHour = null;
+  function drawFavicon() {
+    const h = hourLabel(realNow());
+    if (h === favHour) return;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 64;
+    const g = cv.getContext('2d');
+    if (!g) return;
+    g.fillStyle = '#29372c';
+    g.beginPath();
+    g.roundRect ? g.roundRect(0, 0, 64, 64, 11) : g.rect(0, 0, 64, 64);
+    g.fill();
+    g.fillStyle = '#f7f2d8';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = `800 ${h >= 10 ? 38 : 44}px Figtree, "Helvetica Neue", Arial, sans-serif`;
+    g.fillText(String(h), 32, 35);
+    favicon.type = 'image/png';
+    favicon.href = cv.toDataURL('image/png');
+    favHour = h;
+  }
+  (document.fonts ? document.fonts.load('800 38px Figtree') : Promise.resolve()).catch(() => {}).then(drawFavicon);
+  setInterval(drawFavicon, 30000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
 
   render();
