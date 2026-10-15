@@ -28,7 +28,7 @@ The colours tie the two clocks together: red is always the hour and yellow is al
   | Lunch | 12:30 PM |
   | Dinner | 7:00 PM |
 
-  Each example also appears as a marker on the clock's rim, for the half of the day the clock is showing. Sunrise and sunset are estimated from the device's time zone unless a location is given.
+  Sunrise and sunset are estimated from the device's time zone unless a location is given.
 
 All sounds are synthesized in the browser, so there are no audio files.
 
@@ -62,8 +62,8 @@ The standalone site (`index.html`) uses the same element in full mode. `demo.htm
 | --- | --- |
 | `mode` attribute | `face`: the dial alone, showing the real time, sized by its container, with no controls; tapping it fires `lt-open`. `full`: the whole Learn Time toy. Missing or unknown values mean `face`. Changing the attribute switches modes in place. |
 | `contract` attribute | Must be `"1"`. Anything else, including a missing attribute, renders nothing and fires `lt-error` with code `unsupported-contract`. |
-| `routine` property | A list of anchors, `{id, time, label?, iconUrl?}`, that replaces the built-in defaults. `time` is `"HH:MM"` in 24-hour time. `sunrise` and `sunset` can leave `time` out to use the computed time. The built-in ids (`sunrise`, `midday`, `sunset`, `midnight`, `breakfast`, `lunch`, `dinner`) have pictures. Other ids show `label`, or the id, as text. Anchors become the picture buttons in full mode and markers on the rim in both modes. |
-| `events` property | Today's events, `{title, start, iconUrl}`. `start` is `"HH:MM"`, an ISO date-time or a `Date`. Events not on today's date are skipped. They appear as rim markers, like routine anchors; without an `iconUrl`, a marker shows the title's first letter. In full mode, tapping a marker sets the clock to that time. |
+| `routine` property | A list of anchors, `{id, time, label?, iconUrl?}`, that replaces the built-in defaults. `time` is `"HH:MM"` in 24-hour time. `sunrise` and `sunset` can leave `time` out to use the computed time. The built-in ids (`sunrise`, `midday`, `sunset`, `midnight`, `breakfast`, `lunch`, `dinner`) have pictures. Other ids show `label`, or the id, as text. In full mode, anchors become the picture buttons; face mode shows only the dial. |
+| `events` property | Today's events, `{title, start, iconUrl}`. `start` is `"HH:MM"`, an ISO date-time or a `Date`. Events not on today's date are skipped. In full mode, each event becomes a button after the routine anchors, like breakfast and lunch: it shows the `iconUrl` picture, or the title as text, and tapping it sets the clock to that time. |
 | `location` property | `{lat, lng}`, used for sunrise and sunset. Without it, they're estimated from the time zone. |
 | `lt-ready` event | Fired once per element after its first render. `detail: {version, contract}`. |
 | `lt-open` event | Fired when the face is tapped, or activated with Enter or Space. |
