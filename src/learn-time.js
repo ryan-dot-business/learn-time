@@ -391,10 +391,6 @@ svg.clock { display: block; width: 100%; height: auto; touch-action: none; overf
 .handle .ring { fill: none; stroke: var(--cream); stroke-width: 2; opacity: 0; }
 .handle:focus-visible .ring { opacity: 1; }
 .handle .pad { fill: transparent; }
-.marker .disc { fill: var(--panel); stroke: var(--cream); stroke-width: 1.6; }
-.marker.on .disc { stroke: var(--minute); stroke-width: 2.4; }
-.marker .ini { fill: var(--cream); font-weight: 800; text-anchor: middle; dominant-baseline: central; font-size: 11px; }
-.full .marker { cursor: pointer; }
 .dragging, .dragging * { cursor: grabbing !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 `;
@@ -405,8 +401,8 @@ const GEOM = {
   full: { viewBox: '-24 -24 269 269', num: 15, hl: 25, label: 17, rim: 10, hourW: 10, minW: 6.5, pin: 3.4 },
   face: { viewBox: '-9 -9 239 239', num: 20, hl: 30, label: 21, rim: 9, hourW: 12, minW: 7.5, pin: 4 },
 };
-const C = 110.5, R_RIM = 105.5, R_HANDLE = 125, L_HOUR = 46, L_MIN = 72, R_MARK = 11;
-const NS = 'http://www.w3.org/2000/svg', XLINK = 'http://www.w3.org/1999/xlink';
+const C = 110.5, R_RIM = 105.5, R_HANDLE = 125, L_HOUR = 46, L_MIN = 72;
+const NS = 'http://www.w3.org/2000/svg';
 
 function clockSVG(mode) {
   const g = GEOM[mode];
@@ -428,7 +424,6 @@ function clockSVG(mode) {
       <line class="hand hour" id="hHour" x1="${C}" y1="${C}" x2="${C}" y2="${C - L_HOUR}" stroke-width="${g.hourW}"/>
       <line class="hand min" id="hMin" x1="${C}" y1="${C}" x2="${C}" y2="${C - L_MIN}" stroke-width="${g.minW}"/>
       <circle class="pin" cx="${C}" cy="${C}" r="${g.pin}"/>
-      <g id="markers"></g>
       <g id="burst"></g>
       ${full ? `
       <line class="hit" id="hitHour" data-hand="hour" x1="${C}" y1="${C}" x2="${C}" y2="${C - L_HOUR}"/>
@@ -439,7 +434,7 @@ function clockSVG(mode) {
 }
 
 function fullMarkup(anchors, closable) {
-  const buttons = anchors.filter(a => a.kind === 'routine').map(a =>
+  const buttons = anchors.map(a =>
     `<button class="btn ex" type="button" data-key="${esc(a.key)}" aria-pressed="false" aria-label="${esc(a.label)}">${
       a.icon ? `<img alt="" src="${esc(a.icon)}">` : `<span class="lbl">${esc(a.label)}</span>`}</button>`).join('');
   return `
@@ -508,58 +503,6 @@ function createClock(host, root, cfg) {
     el.textContent = i === 0 ? '12' : String(i);
     $('nums').appendChild(el);
     nums.push(el);
-  }
-
-  // Routine and event markers sit on the rim at their time, for the half of
-  // the day the clock is showing (morning anchors when it reads AM).
-  let markerKey = '';
-  function renderMarkers(ti) {
-    const half = ti >= 720 ? 1 : 0;
-    const key = half + '|' + (state.mode === 'example' ? state.example : '') + '|' + anchors.map(a => a.key + a.time + a.icon).join(',');
-    if (key === markerKey) return;
-    markerKey = key;
-    const g = $('markers');
-    while (g.firstChild) g.removeChild(g.firstChild);
-    // Spread markers that would overlap: keep each at least one disc apart,
-    // nudging later ones clockwise, so close times (6:38, 7:04, 7:30) stay readable.
-    const MIN_GAP = 2 * R_MARK * 1.08 / R_RIM * 180 / Math.PI;
-    const shown = anchors.filter(a => (a.time >= 720 ? 1 : 0) === half)
-      .map(a => ({ a, deg: mod(a.time, 720) * 0.5 }))
-      .sort((x, y) => x.deg - y.deg);
-    for (let i = 1; i < shown.length; i++) {
-      if (shown[i].deg - shown[i - 1].deg < MIN_GAP) shown[i].deg = shown[i - 1].deg + MIN_GAP;
-    }
-    shown.forEach(s => {
-      const a = s.a;
-      const p = polar(s.deg, R_RIM);
-      const m = document.createElementNS(NS, 'g');
-      m.setAttribute('class', 'marker' + (state.mode === 'example' && state.example === a.key ? ' on' : ''));
-      m.setAttribute('transform', `translate(${p[0].toFixed(2)} ${p[1].toFixed(2)})`);
-      m.setAttribute('data-key', a.key);
-      const label = `${a.label}, ${hourLabel(a.time)}:${pad2(a.time % 60)} ${ampm(a.time)}`;
-      m.setAttribute('aria-label', label);
-      const title = document.createElementNS(NS, 'title');
-      title.textContent = label;
-      m.appendChild(title);
-      const disc = document.createElementNS(NS, 'circle');
-      disc.setAttribute('class', 'disc');
-      disc.setAttribute('r', R_MARK);
-      m.appendChild(disc);
-      if (a.icon) {
-        const img = document.createElementNS(NS, 'image');
-        img.setAttribute('x', -9); img.setAttribute('y', -8);
-        img.setAttribute('width', 18); img.setAttribute('height', 16);
-        img.setAttributeNS(XLINK, 'xlink:href', a.icon);
-        img.setAttribute('href', a.icon);
-        m.appendChild(img);
-      } else {
-        const t = document.createElementNS(NS, 'text');
-        t.setAttribute('class', 'ini');
-        t.textContent = a.label.charAt(0).toUpperCase();
-        m.appendChild(t);
-      }
-      g.appendChild(m);
-    });
   }
 
   // Title (full mode): Now / quiz target (split-flap) / anchor label / blank in Play
@@ -631,7 +574,6 @@ function createClock(host, root, cfg) {
     ml.setAttribute('y', lp[1].toFixed(2));
     ml.textContent = pad2(mod(ti, 60));
     svg.setAttribute('aria-label', `Clock showing ${hourLabel(ti)}:${pad2(mod(ti, 60))} ${ampm(ti)}`);
-    renderMarkers(ti);
 
     if (!full) return;
     const quiz = state.mode === 'quiz' && state.target != null;
@@ -863,8 +805,6 @@ function createClock(host, root, cfg) {
 
     listen(svg, 'pointerdown', e => {
       if (e.button > 0) return;
-      const marker = e.target.closest && e.target.closest('.marker');
-      if (marker) { selectAnchor(marker.getAttribute('data-key')); return; }
       const handEl = e.target.closest && e.target.closest('[data-hand]');
       let hand = handEl ? handEl.getAttribute('data-hand') : null;
       if (!hand) {
@@ -966,7 +906,7 @@ function createClock(host, root, cfg) {
 
   // ---- Real time ----
   function syncNow() {
-    if (dayKey() !== dateSeen) { dateSeen = dayKey(); anchors = cfg.anchors(); markerKey = ''; render(); }
+    if (dayKey() !== dateSeen) { dateSeen = dayKey(); anchors = cfg.anchors(); render(); }
     if (state.mode !== 'now' || state.anim || state.dragCount) return;
     const rt = realNow();
     if (rt !== state.t) { state.t = rt; render(); }
@@ -978,11 +918,9 @@ function createClock(host, root, cfg) {
   render();
 
   return {
-    // Routine, events or location changed. A changed routine changes the buttons,
-    // which needs a fresh mount; events and location only move markers.
+    // Location changed, or the day rolled over: anchor times may have moved.
     refresh() {
       anchors = cfg.anchors();
-      markerKey = '';
       if (state.mode === 'example' && !anchorByKey(state.example)) { state.mode = 'play'; state.example = null; }
       render();
     },
@@ -1012,16 +950,12 @@ class LearnTimeElement extends HTMLElement {
   get routine() { return this._routine; }
   set routine(v) {
     if (v != null && !Array.isArray(v)) { this._error('invalid-routine', 'routine must be an array of {id, time}'); return; }
-    const before = JSON.stringify(this._routineIds());
-    this._routine = v || null;
-    if (this._clock && JSON.stringify(this._routineIds()) !== before && this.mode === 'full') this._mount();
-    else if (this._clock) this._clock.refresh();
+    this._update(() => { this._routine = v || null; });
   }
   get events() { return this._events; }
   set events(v) {
     if (v != null && !Array.isArray(v)) { this._error('invalid-events', 'events must be an array of {title, start, iconUrl}'); return; }
-    this._events = v || [];
-    if (this._clock) this._clock.refresh();
+    this._update(() => { this._events = v || []; });
   }
   get location() { return this._location; }
   set location(v) {
@@ -1029,8 +963,7 @@ class LearnTimeElement extends HTMLElement {
       this._error('invalid-location', 'location must be {lat, lng}');
       return;
     }
-    this._location = v || null;
-    if (this._clock) this._clock.refresh();
+    this._update(() => { this._location = v || null; });
   }
   get mode() { return this.getAttribute('mode') === 'full' ? 'full' : 'face'; }
   set mode(v) { this.setAttribute('mode', v); }
@@ -1055,8 +988,17 @@ class LearnTimeElement extends HTMLElement {
     if (oldV !== newV && this._connected) this._mount();
   }
 
-  _routineIds() {
-    return resolveAnchors(this._routine, [], this._location).map(a => a.key + '|' + a.label + '|' + a.icon);
+  // Routine anchors and events are the picture buttons in full mode, so a change to
+  // which buttons exist rebuilds it; anything else (like new times) just re-renders.
+  _buttonIds() {
+    return this._anchors().map(a => a.key + '|' + a.label + '|' + a.icon).join(',');
+  }
+  _update(change) {
+    const before = this._buttonIds();
+    change();
+    if (!this._clock) return;
+    if (this.mode === 'full' && this._buttonIds() !== before) this._mount();
+    else this._clock.refresh();
   }
   _anchors() { return resolveAnchors(this._routine, this._events, this._location); }
   _emit(type, detail) {
